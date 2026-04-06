@@ -1,253 +1,134 @@
 """
-server.py - connect four client
-cmpt 371 assignment 3
+CMPT 371 A3: Connect Four 
+server.py - connect four server
+-----------------------------------------
+INBOUND (Client -> Server):
+  - Handshake: {"type": "CONNECT"}
+  - Gameplay:  {"type": "MOVE", "col": 0-6}
 
-Hosts a Connect Four game over TCP. Accepts 2 clients, assigns colors,
-receives moves, updates the board, checks for wins or draws,
-and broadcasts game state to all connected clients.
+OUTBOUND (Server -> Client):
+  - Assign:    {"type": "WELCOME", "role": "R" | "Y"}
+  - State:     {"type": "UPDATE", "board": [[...]], "turn": "R", "status": "..."}
 
-Protocol with clients:
-Server sends:
-    "ASSIGN:<colour>"  -> tells the client their color (R or Y)
-    "BOARD:<state>"    -> sends the current board as a flattened string
-    "TURN:<colour>"    -> whose turn it is
-    "WIN:<colour>"     -> announces a winning color
-    "DRAW"             -> board is full, game ends
+Technical: UTF-8 JSON + Newline (\n) Delimiter
+  - "\n" marks where one JSON object ends so the receiver can split and parse them.
 
-Clients send:
-    "MOVE:<col>"       -> drop a piece in the specified column (0-indexed)
-
-Board representation:
-0 = empty, R = red, Y = yellow
-Board is 6 rows × 7 columns
 """
 
-import socket
-import threading
+import socket, json, threading
 
-# ---------------- Configuration ----------------
-
-HOST = "0.0.0.0"  # Listen on all network interfaces
-PORT = 5050       # Port number for the server
-
-ROWS = 6          # Connect Four standard board dimensions
-COLS = 7
-
-# ---------------- Server Class ----------------
+PORT = 5050
+ROWS, COLS = 6, 7
 
 class ConnectFourServer:
     def __init__(self):
-        self.board = [["0"] * COLS for _ in range(ROWS)] # Empty board
-        self.clients = []               # [(conn, colour)]
-        self.current_turn = "R"         # Red goes first
-        self.lock = threading.Lock()    # Thread-safe move handling
-        self.game_over = False          # Game Over state
-        self.server_socket = None       # Will hold listening socket
-
-    # ---------------- Server Setup ----------------
+        self.board = [["0"] * COLS for _ in range(ROWS)]  # 6x7 grid, "0" = empty
+        self.clients = []        # list of (socket, role) for each connected player
+        self.turn = "R"          # Red always goes first
+        self.game_over = False
+        self.lock = threading.Lock()  # prevents race conditions when two clients send moves at the same time
 
     def start(self):
-        # Create TCP server socket
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((HOST, PORT))
-        server.listen(2)
+        # create the TCP server socket and wait for exactly 2 players
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # allows reuse of port immediately after restart
+        s.bind(("0.0.0.0", PORT))
+        s.listen(2)
+        print(f"server listening on {PORT}...")
 
-        print(f"Server listening on {HOST}:{PORT}")
-
-        # accept exactly 2 players
         while len(self.clients) < 2:
-            conn, addr = server.accept()
-            colour = "R" if len(self.clients) == 0 else "Y"
-            self.clients.append((conn, colour))
-            print(f"Player {colour} connected from {addr}")
+            conn, addr = s.accept()
+            role = "R" if not self.clients else "Y"  # first to connect is Red, second is Yellow
+            self.clients.append((conn, role))
+            print(f"player {role} connected")
+            
+            # start a listener thread for each client immediately so CONNECT handshake isn't missed
+            threading.Thread(target=self.handle_client, args=(conn, role), daemon=True).start()
 
-            conn.sendall(f"ASSIGN:{colour}\n".encode())
+        # both players connected, send the initial board state to kick off the game
+        self.broadcast("ongoing")
+        
+        while True: threading.Event().wait(1)
 
-            threading.Thread(
-                target=self.handle_client,
-                args=(conn, colour),
-                daemon=True
-            ).start()
+    def broadcast(self, status, win_coords=None):
+        # send the full game state to every connected client
+        msg = {"type": "UPDATE", "board": self.board, "turn": self.turn, "status": status, "win_coords": win_coords}
+        data = (json.dumps(msg) + "\n").encode()
+        for conn, role in self.clients:
+            try: conn.sendall(data)
+            except: pass  
 
-        print("Both players connected. Starting game.")
-
-        # send initial state
-        self.send_board()
-        self.broadcast(f"TURN:{self.current_turn}")
-
-        # wait here until game ends
-        while not self.game_over:
-            threading.Event().wait(1)  # sleep 1 second, allow threads to run
-
-        # shutdown after game over
-        self.shutdown_server()
-
-    # ---------------- Interaction ----------------
-
-    def handle_client(self, conn, colour):
-        """
-        Handle messages from a client.
-        Messages may arrive in chunks, so we buffer until newline.
-        """
-        buffer = ""
-
-        try:
-            while True:
-                data = conn.recv(1024).decode()
-                if not data:
-                    break
-
-                buffer += data
-
-                # process full messages
-                while "\n" in buffer:
-                    msg, buffer = buffer.split("\n", 1)
-                    self.process_message(conn, colour, msg.strip())
-
-        except:
-            pass
-        finally:
-            conn.close()
-
-    def process_message(self, conn, colour, msg):
-        """
-        Interpret a message from the client.
-        Currently only handles MOVE messages.
-        """
-
-        if msg.startswith("MOVE:"):
+    def handle_client(self, conn, role):
+        # runs on its own thread for each client, receives messages and updates game state
+        buf = ""
+        while True:
             try:
-                col = int(msg.split(":")[1])
-                self.handle_move(colour, col)
-            except:
-                pass
+                raw = conn.recv(4096).decode()
+                if not raw: break  # client disconnected
+                buf += raw
 
-    # ---------------- Game Logic ----------------
+                # split on newline to extract complete messages from the TCP stream
+                while "\n" in buf:
+                    line, buf = buf.split("\n", 1)
+                    msg = json.loads(line)
+                    
+                    if msg["type"] == "CONNECT":
+                        # handshake — tell the client which role they've been assigned
+                        resp = json.dumps({"type": "WELCOME", "payload": role}) + "\n"
+                        conn.sendall(resp.encode())
+                    
+                    elif msg["type"] == "MOVE":
+                        self.do_move(role, msg["col"])
+                        
+                    elif msg["type"] == "RESET":
+                        # reset board and turn, broadcast fresh state to both clients
+                        with self.lock:
+                            self.board = [["0"] * COLS for _ in range(ROWS)]
+                            self.turn, self.game_over = "R", False
+                            self.broadcast("ongoing")
+            except: break
+        conn.close()
 
-    def handle_move(self, colour, col):
-        """
-        Place a piece in the specified column if valid.
-        Update the board, check for win/draw, and broadcast updates.
-        """
+    def do_move(self, role, col):
         with self.lock:
-            if self.game_over:
-                return
-
-            if colour != self.current_turn:
-                return
-
-            if not (0 <= col < COLS):
-                return
-
-            row = self.get_open_row(col)
-            if row is None:
-                return  # column full
-
-            self.board[row][col] = colour
-            print(f"{colour} placed at column {col}")
-
-            # check win
-            if self.check_win(row, col, colour):
-                self.send_board()
-                self.broadcast(f"WIN:{colour}")
+            # ignore move if game is over or it's not this player's turn
+            if self.game_over or role != self.turn: return
+            
+            # find the lowest empty row in the chosen column 
+            row = -1
+            for r in range(ROWS-1, -1, -1):
+                if self.board[r][col] == "0":
+                    row = r
+                    break
+            
+            if row == -1: return  # column is full, ignore move
+            
+            self.board[row][col] = role
+            win_line = self.check_win(row, col, role)
+            
+            if win_line:
                 self.game_over = True
-                return
-
-            # check draw
-            if self.is_draw():
-                self.send_board()
-                self.broadcast("DRAW")
+                self.broadcast(f"player {role} wins!", win_line)
+            elif all(self.board[0][c] != "0" for c in range(COLS)):
+                # top row is full = board is full = draw
                 self.game_over = True
-                return
+                self.broadcast("draw")
+            else:
+                self.turn = "Y" if role == "R" else "R"  # switch turns
+                self.broadcast("ongoing")
 
-            # switch turn
-            self.current_turn = "Y" if colour == "R" else "R"
-
-            # Send updated board and turn
-            self.send_board()
-            self.broadcast(f"TURN:{self.current_turn}")
-
-    def get_open_row(self, col):
-        """Return the first empty row in a column, starting from the bottom."""
-        for r in range(ROWS - 1, -1, -1):
-            if self.board[r][col] == "0":
-                return r
+    def check_win(self, r, c, color):
+        # check all 4 directions: horizontal, vertical, diagonal, anti-diagonal
+        for dr, dc in [(0,1), (1,0), (1,1), (1,-1)]:
+            line = [(r, c)]
+            for side in [1, -1]:
+                # extend in both directions along the axis
+                nr, nc = r + dr*side, c + dc*side
+                while 0 <= nr < ROWS and 0 <= nc < COLS and self.board[nr][nc] == color:
+                    line.append((nr, nc))
+                    nr, nc = nr + dr*side, nc + dc*side
+            if len(line) >= 4: return line[:4]  # return the winning 4 cells for highlighting
         return None
-
-    def is_draw(self):
-        """Return True if the board is full (no empty spaces in top row)."""
-        return all(self.board[0][c] != "0" for c in range(COLS))
-
-    def check_win(self, row, col, colour):
-        """
-        Check if placing a piece at (row, col) causes a win.
-        Looks in 4 directions: vertical, horizontal, two diagonals.
-        """
-        directions = [(1,0), (0,1), (1,1), (1,-1)]
-
-        for dx, dy in directions:
-            count = 1
-
-            count += self.count_dir(row, col, dx, dy, colour)
-            count += self.count_dir(row, col, -dx, -dy, colour)
-
-            if count >= 4:
-                return True
-
-        return False
-
-    def count_dir(self, row, col, dx, dy, colour):
-        """Count consecutive pieces of the same color in a given direction."""
-        r, c = row + dy, col + dx
-        count = 0
-
-        while 0 <= r < ROWS and 0 <= c < COLS:
-            if self.board[r][c] != colour:
-                break
-            count += 1
-            r += dy
-            c += dx
-
-        return count
-
-    # ---------------- Board Communication ----------------
-
-    def board_string(self):
-        """Flatten the 2D board into a single string for sending to clients."""
-        return "".join(cell for row in self.board for cell in row)
-
-    def send_board(self):
-        """Broadcast the current board to all clients."""
-        self.broadcast(f"BOARD:{self.board_string()}")
-
-    def broadcast(self, message):
-        """Send a message to all connected clients."""
-        for conn, _ in self.clients:
-            try:
-                conn.sendall((message + "\n").encode())
-            except:
-                pass
-
-    # ---------------- Shutdown ----------------
-
-    def shutdown_server(self):
-        """Close all client connections and the server socket."""
-        print("Shutting down server...")
-        self.game_over = True
-        for conn, _ in self.clients:
-            try:
-                conn.close()
-            except:
-                pass
-        if self.server_socket:
-            try:
-                self.server_socket.close()
-            except:
-                pass
-        print("Server closed.")
-
-
-# ---------------- Main ----------------
 
 if __name__ == "__main__":
     ConnectFourServer().start()
