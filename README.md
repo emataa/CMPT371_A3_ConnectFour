@@ -11,7 +11,7 @@
 | Name | Student ID | Email |
 | :---- | :---- | :---- |
 | [Kenneth Emata] | [301557091] | [kea31@sfu.ca] |
-| [Tommy Truong] | [301304389] | [partner@email.sfu.ca] |
+| [Tommy Truong] | [301304389] | [tttruong@sfu.ca] |
 
 ---
 
