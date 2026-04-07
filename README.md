@@ -59,29 +59,18 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 To run this project, you need:
 
 - **Python 3.8** or higher — download from [python.org](https://www.python.org/downloads/) if not installed.
-- **tkinter** — bundled with Python on Windows and macOS. On Linux:
-  ```bash
-  sudo apt install python3-tk
-  ```
 - No external `pip` installations are required (uses standard `socket`, `threading`, `json`, `tkinter` libraries).
-
-***RUBRIC NOTE: No external libraries are required. Therefore, a `requirements.txt` file is not needed.***
-
-> ⚠️ **macOS note:** If tkinter crashes immediately, your system Python ships with a broken Tk. Fix it with Homebrew:
-> ```bash
-> brew install python3 python-tk
-> ```
+- VSCode or a terminal
 
 ---
 
 ## **5. Step-by-Step Run Guide**
 
-***RUBRIC NOTE: The grader must be able to copy-paste these commands. Run all commands on a local machine with a display — not over a headless SSH session.***
 
 ### **Step 1: Clone the Repository**
 
 ```bash
-git clone https://github.com/[your-username]/CMPT371_A3_ConnectFour.git
+git clone git@github.com:emataa/CMPT371_A3_ConnectFour.git
 cd CMPT371_A3_ConnectFour
 ```
 
@@ -106,7 +95,7 @@ Open a **new** terminal window. Run the client script:
 
 ```bash
 python3 client.py
-# A "connect four" screen appears — enter the server IP and click "join game"
+# A "connect four" screen appears. Enter the server IP and click "join game"
 # Console output: "player R connected"
 ```
 
@@ -123,7 +112,9 @@ python3 client.py
 
 ### **Step 5: Gameplay**
 
-1. **Red** (first to connect) goes first — click any column to drop your piece.
+Standard Connect Four Gameplay
+
+1. **Red** (first to connect) goes first. Click any column to drop your piece.
 2. The server updates the board on both screens after every move.
 3. **Yellow** takes their turn.
 4. The game ends when a player gets four in a row or the board is full.
