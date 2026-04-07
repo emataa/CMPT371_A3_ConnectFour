@@ -17,7 +17,7 @@
 
 ## **1. Project Overview & Description**
 
-This project is a multiplayer Connect Four game built using Python's Socket API (TCP). Two clients connect to a central server and play against each other in real time through a graphical tkinter interface. The server handles all game logic — board state management, move validation, and win/draw detection — ensuring clients cannot modify their local game state to cheat.
+This project is a multiplayer Connect Four game built using Python's Socket API (TCP). Two clients connect to a central server and play against each other in real time through a graphical tkinter interface. The server handles all game logic such board state management, move validation, and win/draw detection.
 
 ---
 
@@ -58,9 +58,9 @@ Our 2-minute video demonstration covering connection establishment, data exchang
 
 To run this project, you need:
 
-- **Python 3.8** or higher — download from [python.org](https://www.python.org/downloads/) if not installed.
+- **Python 3.8** or higher: download from [python.org](https://www.python.org/downloads/) if not installed.
 - No external `pip` installations are required (uses standard `socket`, `threading`, `json`, `tkinter` libraries).
-- VSCode or a terminal
+- VSCode and/or a terminal
 
 ---
 
@@ -124,7 +124,7 @@ Standard Connect Four Gameplay
 
 ## **6. Technical Protocol Details (JSON over TCP)**
 
-We designed a custom application-layer protocol for data exchange using JSON over TCP:
+We designed a custom application-layer protocol for data exchange using JSON over TCP as shown in the TA tutorial:
 
 - **Message Format:** `{"type": <string>, ...}\n`
 - **Handshake Phase:**
@@ -137,3 +137,16 @@ We designed a custom application-layer protocol for data exchange using JSON ove
   - Client sends: `{"type": "RESET"}`
   - Server broadcasts a fresh `UPDATE` with an empty board and `"status": "ongoing"`
 
+---
+ 
+## **7. Academic Integrity & References**
+ 
+- **Code Origin:**
+  - Core game logic and TCP protocol design were written by the group. Game logic is based off Keith Galli's Connect 4 tutorials. Socket boilerplate was adapted from the CMPT 371 course tutorials. 
+- **GenAI Usage:**
+  - Claude was used to write and format `README.md`.
+  - Gemini was used to help with the GUI and Frontend. 
+- **References:**
+  - [Python Network Programming - TCP/IP Socket Programming](https://www.youtube.com/playlist?list=PLhTjy8cBISErYuLZUvVOYsR1giva2payF)
+  - [CMPT 371 Assignment 3: TA Guided Tutorial](https://docs.python.org](https://www.youtube.com/playlist?list=PL-8C2cUhmkO1yWLTCiqf4mFXId73phvdx)/3/library/threading.html)
+  - [Keith Galli: How to Program Connect 4 in Python](https://www.youtube.com/watch?v=UYgyRArKDEs&list=PLFCB5Dp81iNV_inzM-R9AKkZZlePCZdtV))
