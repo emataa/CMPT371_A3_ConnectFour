@@ -15,7 +15,7 @@ Technical: UTF-8 JSON + Newline (\n) Delimiter
 
 """
 
-import socket, json, threading
+import socket, json, threading, os
 
 PORT = 5050
 ROWS, COLS = 6, 7
@@ -58,22 +58,23 @@ class ConnectFourServer:
             try: conn.sendall(data)
             except: pass  
 
+      
     def handle_client(self, conn, role):
-        # runs on its own thread for each client, receives messages and updates game state
+        #runs on its own thread
         buf = ""
-        while True:
-            try:
+        try:
+            while True:
                 raw = conn.recv(4096).decode()
-                if not raw: break  # client disconnected
+                if not raw: break # connection closed
+                
+                #split on \n
                 buf += raw
-
-                # split on newline to extract complete messages from the TCP stream
                 while "\n" in buf:
                     line, buf = buf.split("\n", 1)
                     msg = json.loads(line)
                     
                     if msg["type"] == "CONNECT":
-                        # handshake — tell the client which role they've been assigned
+                        # Handshake response
                         resp = json.dumps({"type": "WELCOME", "payload": role}) + "\n"
                         conn.sendall(resp.encode())
                     
@@ -81,13 +82,20 @@ class ConnectFourServer:
                         self.do_move(role, msg["col"])
                         
                     elif msg["type"] == "RESET":
-                        # reset board and turn, broadcast fresh state to both clients
                         with self.lock:
                             self.board = [["0"] * COLS for _ in range(ROWS)]
                             self.turn, self.game_over = "R", False
                             self.broadcast("ongoing")
-            except: break
-        conn.close()
+        
+        # if we exit the loop, the client has disconnected
+        except:
+            print(f"error handling player {role}")
+        finally:
+            print(f"player {role} disconnected. shutting down.")
+            conn.close()
+            os._exit(0)
+
+        
 
     def do_move(self, role, col):
         with self.lock:
