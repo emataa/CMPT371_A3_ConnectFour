@@ -52,9 +52,8 @@ As required by the project specifications, we have identified and handled (or de
 
 ## **3. Video Demo**
 
-***RUBRIC NOTE: Include a clickable link.***  
-Our 2-minute video demonstration covering connection establishment, data exchange, real-time gameplay, and process termination can be viewed below:  
-[**▶️ Watch Project Demo**](#) *(link to be added)*
+Our 2-minute video demonstration covering connection establishment, data exchange, real time gameplay, and process termination can be viewed below:  
+[**▶️ Watch Project Demo**](#) *((https://www.youtube.com/watch?v=6XrvxDxHHUw))*
 
 ---
 
@@ -80,18 +79,15 @@ cd CMPT371_A3_ConnectFour
 
 ### **Step 2: Start the Server**
 
+
+The server binds to 127.0.0.1 on port 5050.
 Open a terminal and run:
 
 ```bash
 python3 server.py
-# Console output: "server listening on 8829..."
+# Console output: "server listening on 5050..."
 ```
 
-> 💡 **Find your IP address so the other player can connect:**
-> - **macOS/Linux:** run `ifconfig` → look for `inet` under your active interface
-> - **Windows:** run `ipconfig` → look for `IPv4 Address`
->
-> If both players are on the same machine, use `127.0.0.1`.
 
 ### **Step 3: Connect Player 1 (Red)**
 
@@ -152,5 +148,6 @@ We designed a custom application-layer protocol for data exchange using JSON ove
   - Gemini was used to help with the GUI and Frontend. 
 - **References:**
   - [Python Network Programming - TCP/IP Socket Programming](https://www.youtube.com/playlist?list=PLhTjy8cBISErYuLZUvVOYsR1giva2payF)
-  - [CMPT 371 Assignment 3: TA Guided Tutorial](https://docs.python.org](https://www.youtube.com/playlist?list=PL-8C2cUhmkO1yWLTCiqf4mFXId73phvdx)/3/library/threading.html)
+  - [CMPT 371 Assignment 3: TA Guided Tutorial](https://www.youtube.com/playlist?list=PL-8C2cUhmkO1yWLTCiqf4mFXId73phvdx)/3/library/threading.html)
   - [Keith Galli: How to Program Connect 4 in Python](https://www.youtube.com/watch?v=UYgyRArKDEs&list=PLFCB5Dp81iNV_inzM-R9AKkZZlePCZdtV)
+  - [Audio heard in demo: "help me I'm stuck in a time loop" or "cozy in my pjs - eevee](https://www.youtube.com/watch?v=pZ0ycxP0fMQ)
