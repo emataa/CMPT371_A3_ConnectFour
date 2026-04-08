@@ -40,6 +40,10 @@ As required by the project specifications, we have identified and handled (or de
 
 - **Single Game Session:**
   - *Limitation:* The server handles one game at a time. Players can rematch using the in-app **PLAY AGAIN** button, which resets the board without restarting the server.
+ 
+- **Client Disconnection Handling:**
+  - *Solution:* If either client disconnects mid-game (closes the window, loses network connection), the connection drop is caught. The remaining player is immediately informed that the server/opponent   disconnected.
+  - *Limitation:* The server does not pause or allow players to reconnect to the same match. Instead, the server has to reset to clear the current game state and accept a fresh pair of connections.
 
 - **GUI Requires a Local Display:**
   - *Limitation:* `client.py` uses tkinter and must be run on a machine with a graphical desktop. Running it over a headless SSH session (without X11 forwarding) will crash on startup.
