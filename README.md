@@ -150,4 +150,4 @@ We designed a custom application-layer protocol for data exchange using JSON ove
   - [Python Network Programming - TCP/IP Socket Programming](https://www.youtube.com/playlist?list=PLhTjy8cBISErYuLZUvVOYsR1giva2payF)
   - [CMPT 371 Assignment 3: TA Guided Tutorial](https://www.youtube.com/playlist?list=PL-8C2cUhmkO1yWLTCiqf4mFXId73phvdx)
   - [Keith Galli: How to Program Connect 4 in Python](https://www.youtube.com/watch?v=UYgyRArKDEs&list=PLFCB5Dp81iNV_inzM-R9AKkZZlePCZdtV)
-  - [Audio heard in demo: "help me I'm stuck in a time loop" or "cozy in my pjs - eevee](https://www.youtube.com/watch?v=pZ0ycxP0fMQ)
+  - [Audio heard in demo: "help me I'm stuck in a time loop" or "cozy in my pjs - eevee"](https://www.youtube.com/watch?v=pZ0ycxP0fMQ)
