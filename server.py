@@ -89,11 +89,15 @@ class ConnectFourServer:
         
         # if we exit the loop, the client has disconnected
         except:
-            print(f"error handling player {role}")
+            print(f"player {role} disconnected unexpectedly.")
         finally:
-            print(f"player {role} disconnected. shutting down.")
+            with self.lock:
+                self.clients = [c for c in self.clients if c[0] != conn] 
+                self.game_over = True  # stop accepting moves if a player disconnects
+            print(f"player {role} disconnected. notifying remaining player and shutting down game.")
+            self.broadcast("opponent disconnected, please restart the game.")  # notify remaining player
             conn.close()
-            os._exit(0)
+            os._exit(0)  
 
         
 
